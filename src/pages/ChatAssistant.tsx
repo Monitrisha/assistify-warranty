@@ -1,14 +1,12 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { 
-  MessageSquare, SendHorizontal, Bot, User, Plus,
-  Clock, Search
-} from 'lucide-react';
+import { MessageSquare, SendHorizontal, Bot, User, Plus, Clock, Search } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ChatPromptSuggestions from '@/components/ChatPromptSuggestions';
+import { warrantyApi, WarrantyMessage } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 // Sample previous chats
 const previousChats = [
@@ -17,22 +15,17 @@ const previousChats = [
   { id: 3, title: "Warranty extension help", date: "2024-03-10" },
 ];
 
-// Sample chat messages
-const initialMessages = [
-  {
+const ChatAssistant = () => {
+  const [messages, setMessages] = useState<WarrantyMessage[]>([{
     role: 'assistant',
     content: 'Hello! I\'m your warranty assistant. How can I help you today?',
     timestamp: new Date().toISOString()
-  }
-];
-
-const ChatAssistant = () => {
-  const [messages, setMessages] = useState(initialMessages);
+  }]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [showPrompts, setShowPrompts] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   // Auto-scroll to bottom of messages
   const scrollToBottom = () => {
@@ -43,14 +36,13 @@ const ChatAssistant = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!input.trim()) return;
     
     // Add user message
-    const userMessage = {
+    const userMessage: WarrantyMessage = {
       role: 'user',
       content: input,
       timestamp: new Date().toISOString()
@@ -58,40 +50,21 @@ const ChatAssistant = () => {
     
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsTyping(true);
+    setIsLoading(true);
     setShowPrompts(false);
     
-    // Simulate AI response after a delay
-    setTimeout(() => {
-      const botResponse = {
-        role: 'assistant',
-        content: getBotResponse(input),
-        timestamp: new Date().toISOString()
-      };
-      
-      setMessages(prev => [...prev, botResponse]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  // Sample bot responses based on user input
-  const getBotResponse = (userInput: string) => {
-    const input = userInput.toLowerCase();
-    
-    if (input.includes('file') && input.includes('claim')) {
-      return "To file a warranty claim, you'll need your proof of purchase and the product's serial number. Would you like to upload these documents now, or should I guide you through the process step by step?";
-    } else if (input.includes('track') && (input.includes('claim') || input.includes('status'))) {
-      return "I can help you track your claim. Could you provide the claim number or the product information so I can look it up for you?";
-    } else if (input.includes('upload') || input.includes('document')) {
-      return "You can upload warranty documents by clicking the attachment icon in the chat or going to the Upload section in the main menu. What type of document would you like to upload?";
-    } else if (input.includes('schedule') || input.includes('appointment')) {
-      return "I can help you schedule a service appointment. What product do you need service for, and what's your preferred date and time?";
-    } else if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
-      return "Hello! I'm your AI warranty assistant. How can I help you today?";
-    } else if (input.includes('information') && input.includes('warranty claim')) {
-      return "For a warranty claim, you'll typically need: 1) Proof of purchase (receipt or invoice), 2) Product serial number, 3) Description of the issue, 4) Photos of damage (if applicable), and 5) Your contact information. Would you like to start gathering these?";
-    } else {
-      return "Thank you for your question. I'd be happy to help you with that. Could you provide more details about your warranty concern?";
+    try {
+      // Send message to Flask backend
+      const response = await warrantyApi.sendMessage(input);
+      setMessages(prev => [...prev, response]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to get response from server. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,9 +81,12 @@ const ChatAssistant = () => {
 
   // Start a new chat
   const handleNewChat = () => {
-    setMessages(initialMessages);
+    setMessages([{
+      role: 'assistant',
+      content: 'Hello! I\'m your warranty assistant. How can I help you today?',
+      timestamp: new Date().toISOString()
+    }]);
     setInput('');
-    setSelectedChat(null);
     setShowPrompts(true);
   };
 
@@ -143,7 +119,7 @@ const ChatAssistant = () => {
                   key={chat.id}
                   variant="ghost"
                   className="w-full justify-start text-left p-3 h-auto space-y-1"
-                  onClick={() => setSelectedChat(chat.id)}
+                  onClick={() => console.log('Selected chat:', chat.id)}
                 >
                   <div className="flex items-center gap-2">
                     <MessageSquare size={16} />
@@ -205,7 +181,7 @@ const ChatAssistant = () => {
             )}
             
             {/* Typing indicator */}
-            {isTyping && (
+            {isLoading && (
               <div className="flex justify-start">
                 <div className="flex items-start gap-2 max-w-[80%]">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
