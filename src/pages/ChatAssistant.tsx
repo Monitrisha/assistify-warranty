@@ -1,13 +1,19 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
-  MessageSquare, SendHorizontal, Upload, Paperclip, 
-  Image, File, Mic, Bot, User
+  MessageSquare, SendHorizontal, Bot, User, Plus,
+  Clock, Search
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+
+// Sample previous chats
+const previousChats = [
+  { id: 1, title: "Warranty claim for laptop", date: "2024-03-12" },
+  { id: 2, title: "Phone repair inquiry", date: "2024-03-11" },
+  { id: 3, title: "Warranty extension help", date: "2024-03-10" },
+];
 
 // Sample chat messages
 const initialMessages = [
@@ -22,6 +28,7 @@ const ChatAssistant = () => {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedChat, setSelectedChat] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Sample user queries for suggestions
@@ -103,23 +110,51 @@ const ChatAssistant = () => {
 
   return (
     <Layout>
-      <div className="container max-w-4xl px-4">
-        <div className="flex flex-col h-[calc(100vh-9rem)]">
-          {/* Chat header */}
-          <div className="flex items-center justify-between py-4 border-b">
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <Bot className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-medium">Warranty Assistant</h1>
-                <p className="text-xs text-muted-foreground">AI-powered support</p>
-              </div>
+      <div className="flex h-[calc(100vh-4rem)]">
+        {/* Chat History Sidebar */}
+        <div className="w-80 border-r bg-muted/30">
+          <div className="p-4 space-y-4">
+            <Button variant="outline" className="w-full justify-start gap-2">
+              <Plus size={16} />
+              New Chat
+            </Button>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search previous chats..." 
+                className="pl-9"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              {previousChats.map((chat) => (
+                <Button
+                  key={chat.id}
+                  variant="ghost"
+                  className="w-full justify-start text-left p-3 h-auto space-y-1"
+                  onClick={() => setSelectedChat(chat.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={16} />
+                    <span className="font-medium text-sm truncate">
+                      {chat.title}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock size={12} />
+                    <span>{chat.date}</span>
+                  </div>
+                </Button>
+              ))}
             </div>
           </div>
-          
-          {/* Chat messages */}
-          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+        </div>
+
+        {/* Chat Interface */}
+        <div className="flex-1 flex flex-col">
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto py-4 px-6 space-y-4">
             {messages.map((message, index) => (
               <div 
                 key={index} 
@@ -169,52 +204,23 @@ const ChatAssistant = () => {
               </div>
             )}
             
-            {/* Auto-scroll anchor */}
             <div ref={messagesEndRef} />
           </div>
           
-          {/* Quick suggestions */}
-          {messages.length < 3 && (
-            <div className="mb-4">
-              <p className="text-sm font-medium mb-2">Quick questions:</p>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((suggestion, index) => (
-                  <Button 
-                    key={index} 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="text-xs"
-                  >
-                    {suggestion}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          
           {/* Input form */}
-          <div className="border-t pt-4 pb-6">
+          <div className="border-t p-4">
             <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-              <div className="flex gap-2 items-center">
-                <Button type="button" size="icon" variant="ghost">
-                  <Paperclip className="h-5 w-5 text-muted-foreground" />
-                </Button>
-                <div className="relative flex-1">
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="pr-16 py-6"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8">
-                      <Mic className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <Button type="submit" size="icon" className="h-8 w-8" disabled={!input.trim()}>
-                      <SendHorizontal className="h-4 w-4" />
-                    </Button>
-                  </div>
+              <div className="relative flex items-center">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Type your message..."
+                  className="pr-24"
+                />
+                <div className="absolute right-2 flex items-center gap-2">
+                  <Button type="submit" size="icon" className="h-8 w-8" disabled={!input.trim()}>
+                    <SendHorizontal className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground text-center">

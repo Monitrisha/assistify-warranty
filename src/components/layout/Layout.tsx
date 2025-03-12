@@ -11,9 +11,12 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   
-  // Add new route paths here to determine if they should have padding
+  // Add paths that should not have padding or footer
   const routesWithoutPadding = ['/chat'];
+  const routesWithoutFooter = ['/chat'];
+  
   const shouldHavePadding = !routesWithoutPadding.includes(location.pathname);
+  const shouldShowFooter = !routesWithoutFooter.includes(location.pathname);
   
   return (
     <div className="flex min-h-screen flex-col">
@@ -21,7 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className={`flex-1 ${shouldHavePadding ? 'py-8' : ''}`}>
         {children}
       </main>
-      <Footer />
+      {shouldShowFooter && <Footer />}
     </div>
   );
 };
