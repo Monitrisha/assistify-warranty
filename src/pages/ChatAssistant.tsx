@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import {
   Clock, Search
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
+import ChatPromptSuggestions from '@/components/ChatPromptSuggestions';
 
 // Sample previous chats
 const previousChats = [
@@ -29,16 +31,9 @@ const ChatAssistant = () => {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [selectedChat, setSelectedChat] = useState<number | null>(null);
+  const [showPrompts, setShowPrompts] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Sample user queries for suggestions
-  const suggestions = [
-    "How do I file a warranty claim?",
-    "Track my existing claim",
-    "Upload warranty documents",
-    "Schedule a service appointment"
-  ];
-
   // Auto-scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -64,6 +59,7 @@ const ChatAssistant = () => {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    setShowPrompts(false);
     
     // Simulate AI response after a delay
     setTimeout(() => {
@@ -92,6 +88,8 @@ const ChatAssistant = () => {
       return "I can help you schedule a service appointment. What product do you need service for, and what's your preferred date and time?";
     } else if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
       return "Hello! I'm your AI warranty assistant. How can I help you today?";
+    } else if (input.includes('information') && input.includes('warranty claim')) {
+      return "For a warranty claim, you'll typically need: 1) Proof of purchase (receipt or invoice), 2) Product serial number, 3) Description of the issue, 4) Photos of damage (if applicable), and 5) Your contact information. Would you like to start gathering these?";
     } else {
       return "Thank you for your question. I'd be happy to help you with that. Could you provide more details about your warranty concern?";
     }
@@ -108,13 +106,25 @@ const ChatAssistant = () => {
     setInput(suggestion);
   };
 
+  // Start a new chat
+  const handleNewChat = () => {
+    setMessages(initialMessages);
+    setInput('');
+    setSelectedChat(null);
+    setShowPrompts(true);
+  };
+
   return (
     <Layout>
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Chat History Sidebar */}
         <div className="w-80 border-r bg-muted/30">
           <div className="p-4 space-y-4">
-            <Button variant="outline" className="w-full justify-start gap-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-2"
+              onClick={handleNewChat}
+            >
               <Plus size={16} />
               New Chat
             </Button>
@@ -185,6 +195,14 @@ const ChatAssistant = () => {
                 </div>
               </div>
             ))}
+            
+            {/* Warranty claim prompts for new chat */}
+            {showPrompts && messages.length === 1 && (
+              <div className="p-4 rounded-lg border border-muted bg-muted/10">
+                <h3 className="font-medium mb-2">How can I help with your warranty needs?</h3>
+                <ChatPromptSuggestions onSuggestionClick={handleSuggestionClick} />
+              </div>
+            )}
             
             {/* Typing indicator */}
             {isTyping && (
