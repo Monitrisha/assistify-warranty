@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -16,13 +17,10 @@ const previousChats = [
 ];
 
 const ChatAssistant = () => {
-  const [messages, setMessages] = useState<WarrantyMessage[]>([{
-    role: 'assistant',
-    content: 'Hello! I\'m your warranty assistant. How can I help you today?',
-    timestamp: new Date().toISOString()
-  }]);
+  const [messages, setMessages] = useState<WarrantyMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [showPrompts, setShowPrompts] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -31,6 +29,35 @@ const ChatAssistant = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Load chat history on component mount
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      try {
+        const history = await warrantyApi.getChatHistory();
+        setMessages(history);
+        if (history.length > 1) {
+          setShowPrompts(false);
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load chat history. Please refresh the page.",
+          variant: "destructive",
+        });
+        // Set default welcome message if can't load history
+        setMessages([{
+          role: 'assistant',
+          content: 'Hello! I\'m your warranty assistant. How can I help you today?',
+          timestamp: new Date().toISOString()
+        }]);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    fetchChatHistory();
+  }, [toast]);
 
   useEffect(() => {
     scrollToBottom();
@@ -89,6 +116,35 @@ const ChatAssistant = () => {
     setInput('');
     setShowPrompts(true);
   };
+
+  // Show loading skeleton while initializing
+  if (isInitializing) {
+    return (
+      <Layout>
+        <div className="flex h-[calc(100vh-4rem)]">
+          <div className="w-80 border-r bg-muted/30">
+            <div className="p-4 space-y-4">
+              <div className="h-10 bg-muted/50 rounded-md animate-pulse"></div>
+              <div className="h-10 bg-muted/50 rounded-md animate-pulse"></div>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-16 bg-muted/50 rounded-md animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 py-4 px-6 space-y-4">
+              <div className="h-12 w-3/4 bg-muted/50 rounded-md animate-pulse"></div>
+            </div>
+            <div className="border-t p-4">
+              <div className="h-10 bg-muted/50 rounded-md animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -212,7 +268,7 @@ const ChatAssistant = () => {
                   className="pr-24"
                 />
                 <div className="absolute right-2 flex items-center gap-2">
-                  <Button type="submit" size="icon" className="h-8 w-8" disabled={!input.trim()}>
+                  <Button type="submit" size="icon" className="h-8 w-8" disabled={!input.trim() || isLoading}>
                     <SendHorizontal className="h-4 w-4" />
                   </Button>
                 </div>
